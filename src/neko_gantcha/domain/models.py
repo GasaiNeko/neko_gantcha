@@ -54,6 +54,22 @@ class Theme(StrEnum):
     DARK = "dark"
 
 
+class WeekStart(StrEnum):
+    """カレンダーとガントチャートで、週の最初に置く曜日。"""
+
+    MONDAY = "monday"
+    SUNDAY = "sunday"
+
+    @property
+    def weekday(self) -> int:
+        """曜日の番号を返す。
+
+        Returns:
+            datetime.weekday() と同じ番号(0=月曜 … 6=日曜)。
+        """
+        return MAX_WEEKDAY if self is WeekStart.SUNDAY else 0
+
+
 class _Persisted:
     """DB に保存するモデルの共通部分。保存前は id が None になる。"""
 

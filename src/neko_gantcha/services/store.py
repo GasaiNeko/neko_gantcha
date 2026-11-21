@@ -49,6 +49,7 @@ from neko_gantcha.domain.models import (
     Task,
     TaskStatus,
     Theme,
+    WeekStart,
 )
 from neko_gantcha.domain.periods import current_period
 from neko_gantcha.domain.project import project_progress, subtask_progress
@@ -72,6 +73,7 @@ VIEW_TODO = "todo"
 VIEW_CALENDAR = "calendar"
 VIEW_GANTT = "gantt"
 THEME_KEY = "theme"
+WEEK_START_KEY = "week_start"
 
 
 class ItemKind(StrEnum):
@@ -151,6 +153,7 @@ class AppStore(QObject):  # noqa: PLR0904
     periods_changed = Signal()  # 日課・週課・月課のいずれかがリセットをまたいだ
     reveal_requested = Signal(str)  # 「○○で表示」: 指定のビューへ切り替える
     theme_changed = Signal(str)  # Theme の値。設定画面で配色を変えた
+    week_start_changed = Signal()  # 設定画面で週の始まりを変えた
 
     def __init__(
         self,
@@ -199,6 +202,29 @@ class AppStore(QObject):  # noqa: PLR0904
             return
         self._settings.set(THEME_KEY, theme.value)
         self.theme_changed.emit(theme.value)
+
+    def week_start(self) -> WeekStart:
+        """保存されている週の始まりを返す。
+
+        Returns:
+            週の始まり。未設定や不明な値は月曜。
+        """
+        try:
+            return WeekStart(self._settings.get(WEEK_START_KEY) or WeekStart.MONDAY)
+        except ValueError:
+            return WeekStart.MONDAY
+
+    def set_week_start(self, week_start: WeekStart | str) -> None:
+        """週の始まりを保存し、変わったら week_start_changed を出す。
+
+        Args:
+            week_start: 新しい週の始まり。コンボボックスから来る素の str も受ける。
+        """
+        week_start = WeekStart(week_start)
+        if week_start == self.week_start():
+            return
+        self._settings.set(WEEK_START_KEY, week_start.value)
+        self.week_start_changed.emit()
 
     # --- 時刻とリセット検知 ---
 
@@ -506,14 +532,16 @@ class AppStore(QObject):  # noqa: PLR0904
         Returns:
             月表示の内容。
         """
-        days = [day for week in month_weeks(year, month) for day in week]
-        return build_month(year, month, self._calendar_inputs(days))
+        first_weekday = self.week_start().weekday
+        weeks = month_weeks(year, month, first_weekday=first_weekday)
+        days = [day for week in weeks for day in week]
+        return build_month(year, month, self._calendar_inputs(days), first_weekday=first_weekday)
 
     def calendar_week(self, first: date) -> WeekView:
         """週表示の内容を組み立てる。絞り込みは月表示と同じ。
 
         Args:
-            first: その週の月曜日。
+            first: その週の最初の日(week_start() の曜日)。
 
         Returns:
             週表示の内容。

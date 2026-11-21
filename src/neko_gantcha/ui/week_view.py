@@ -130,9 +130,10 @@ class WeekHeader(CalendarCanvas):
             rect = QRect(xs[col], 0, xs[col + 1] - xs[col], self.height())
             self._day_hits.append((rect, cell.day))
             painter.setFont(style.small)
-            painter.setPen(weekday_color(col, style.text))
+            weekday = cell.day.weekday()
+            painter.setPen(weekday_color(weekday, style.text))
             painter.drawText(
-                QRect(rect.left() + 6, 2, 24, 16), Qt.AlignmentFlag.AlignLeft, WEEKDAYS[col]
+                QRect(rect.left() + 6, 2, 24, 16), Qt.AlignmentFlag.AlignLeft, WEEKDAYS[weekday]
             )
             number_rect = QRect(rect.left() + 4, 17, 30, 22)
             painter.setFont(big)
@@ -142,7 +143,7 @@ class WeekHeader(CalendarCanvas):
                 painter.drawRoundedRect(number_rect, 11, 11)
                 painter.setPen(style.highlighted_text)
             else:
-                painter.setPen(weekday_color(col, style.text))
+                painter.setPen(weekday_color(weekday, style.text))
             painter.drawText(number_rect, Qt.AlignmentFlag.AlignCenter, str(cell.day.day))
             if cell.daily_total:
                 complete = cell.daily_done == cell.daily_total
