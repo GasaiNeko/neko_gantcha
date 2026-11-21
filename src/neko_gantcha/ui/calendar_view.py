@@ -164,11 +164,12 @@ class MonthGrid(CalendarCanvas):
         ys = [_HEADER_H + round(i * (height - _HEADER_H) / 6) for i in range(7)]
         painter.fillRect(self.rect(), style.base)
 
-        # 曜日の見出し
-        for col in range(7):
-            painter.setPen(weekday_color(col, style.text))
+        # 曜日の見出し(週の始まりの設定で並びが変わるので、最初の週の日付から決める)
+        for col, cell in enumerate(view.weeks[0]):
+            weekday = cell.day.weekday()
+            painter.setPen(weekday_color(weekday, style.text))
             rect = QRect(xs[col], 0, xs[col + 1] - xs[col], _HEADER_H)
-            painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, WEEKDAYS[col])
+            painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, WEEKDAYS[weekday])
 
         for index, cells in enumerate(view.weeks):
             week = _WeekRow(cells, view.bands[index], xs, ys[index], ys[index + 1])
@@ -202,7 +203,7 @@ class MonthGrid(CalendarCanvas):
         )
         for col, cell in enumerate(week.cells):
             rect = QRect(xs[col], top, xs[col + 1] - xs[col], cell_h)
-            self._draw_cell(painter, style, cell, rect=rect, col=col)
+            self._draw_cell(painter, style, cell, rect=rect)
 
         painter.setFont(style.small)
         self._draw_bands(painter, style, week, shown_lanes=shown_lanes)
@@ -231,7 +232,7 @@ class MonthGrid(CalendarCanvas):
             )
 
     def _draw_cell(
-        self, painter: QPainter, style: PaintStyle, cell: DayCell, *, rect: QRect, col: int
+        self, painter: QPainter, style: PaintStyle, cell: DayCell, *, rect: QRect
     ) -> None:
         """マスの背景、日付、日課の達成数を描き、クリック判定に記録する。"""
         self._day_hits.append((rect, cell.day))
@@ -249,7 +250,9 @@ class MonthGrid(CalendarCanvas):
             bold.setBold(True)
             painter.setFont(bold)
         else:
-            painter.setPen(dim_text if not cell.in_month else weekday_color(col, style.text))
+            painter.setPen(
+                dim_text if not cell.in_month else weekday_color(cell.day.weekday(), style.text)
+            )
             painter.setFont(self.font())
         painter.drawText(number_rect, Qt.AlignmentFlag.AlignCenter, str(cell.day.day))
         if cell.daily_total:
@@ -308,7 +311,7 @@ class CalendarView(QWidget):
         self._selecting = False  # 自分のクリックで選択を変えている最中
 
         self._mode = MODE_MONTH
-        self._week_first = week_start(today)  # 週表示で出している週の月曜日
+        self._week_first = self._week_of(today)  # 週表示で出している週の最初の日
         self._scrolled_week: date | None = None  # 時間軸の初期位置を合わせた週
 
         self.grid = MonthGrid()
@@ -348,6 +351,7 @@ class CalendarView(QWidget):
         ):
             signal.connect(self._schedule_refresh)
         store.selection_changed.connect(self._on_selection_changed)
+        store.week_start_changed.connect(self._on_week_start_changed)
         self.refresh()
 
     def _build_nav(self) -> QHBoxLayout:
@@ -428,9 +432,23 @@ class CalendarView(QWidget):
         """週表示で出している週。
 
         Returns:
-            その週の月曜日。
+            その週の最初の日。
         """
         return self._week_first
+
+    def _week_of(self, day: date) -> date:
+        """その日を含む週の最初の日を、設定の週の始まりで返す。
+
+        Returns:
+            週の最初の日。
+        """
+        return week_start(day, first_weekday=self._store.week_start().weekday)
+
+    def _on_week_start_changed(self) -> None:
+        """週の始まりが変わったら、選択中の日を含む週を出し直す。"""
+        self._week_first = self._week_of(self._selected_day)
+        self._scrolled_week = None
+        self.refresh()
 
     def set_mode(self, mode: str) -> None:
         """月表示と週表示を切り替える。選択中の日を含む月・週を出す。
@@ -441,7 +459,7 @@ class CalendarView(QWidget):
         self._mode = mode
         day = self._selected_day
         self._year, self._month = day.year, day.month
-        self._week_first = week_start(day)
+        self._week_first = self._week_of(day)
         (self._month_button if mode == MODE_MONTH else self._week_button).setChecked(True)
         self._pages.setCurrentWidget(self.grid if mode == MODE_MONTH else self.week)
         self.refresh()
@@ -454,7 +472,7 @@ class CalendarView(QWidget):
         """
         self._selected_day = day
         if self._mode == MODE_WEEK:
-            self._week_first = week_start(day)
+            self._week_first = self._week_of(day)
         else:
             view = self._store.calendar_month(self._year, self._month)
             if not view.first_day <= day <= view.last_day:
@@ -465,7 +483,7 @@ class CalendarView(QWidget):
         """今日を含む月・週に戻り、今日を選ぶ。"""
         today = self._store.now().date()
         self._year, self._month = today.year, today.month
-        self._week_first = week_start(today)
+        self._week_first = self._week_of(today)
         self._selected_day = today
         self._scrolled_week = None  # 時間軸も今の時刻へ戻す
         self.refresh()
@@ -475,7 +493,9 @@ class CalendarView(QWidget):
         if self._mode == MODE_WEEK:
             self._week_first += timedelta(weeks=delta)
             # 選択中の日は同じ曜日のまま新しい週へ移す。日別一覧を見えている週と合わせるため
-            self._selected_day = self._week_first + timedelta(days=self._selected_day.weekday())
+            self._selected_day = self._week_first + timedelta(
+                days=(self._selected_day.weekday() - self._week_first.weekday()) % 7
+            )
         else:
             self._year, self._month = shift_month(self._year, self._month, delta)
         self.refresh()

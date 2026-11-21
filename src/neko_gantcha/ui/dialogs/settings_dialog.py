@@ -31,7 +31,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from neko_gantcha.domain.models import Category, Theme
+from neko_gantcha.domain.models import Category, Theme, WeekStart
 from neko_gantcha.ui.theme import THEME_LABELS
 from neko_gantcha.ui.widgets import color_icon
 
@@ -40,10 +40,11 @@ if TYPE_CHECKING:
 
 _ROLE_ID = Qt.ItemDataRole.UserRole
 WEEKDAYS = ["月曜", "火曜", "水曜", "木曜", "金曜", "土曜", "日曜"]
+WEEK_START_LABELS = {WeekStart.MONDAY: "月曜", WeekStart.SUNDAY: "日曜"}
 
 
 class SettingsDialog(QDialog):
-    """設定画面。配色と分類を編集する。
+    """設定画面。配色、週の始まり、分類を編集する。
 
     Args:
         store: データ操作の窓口。
@@ -67,7 +68,7 @@ class SettingsDialog(QDialog):
         buttons.rejected.connect(self.reject)
 
         layout = QVBoxLayout(self)
-        layout.addLayout(self._build_theme_row())
+        layout.addLayout(self._build_app_row())
         layout.addLayout(body, 1)
         layout.addWidget(buttons)
         self.reload()
@@ -158,25 +159,37 @@ class SettingsDialog(QDialog):
         self._archived.toggled.connect(self._commit)
         return self._form
 
-    def _build_theme_row(self) -> QHBoxLayout:
-        """配色の選択欄を作る。
+    def _build_app_row(self) -> QHBoxLayout:
+        """アプリ全体の設定(配色と週の始まり)の選択欄を作る。
 
         Returns:
-            配色の選択欄を並べたレイアウト。
+            選択欄を並べたレイアウト。
         """
         self._theme = QComboBox()
         for theme, label in THEME_LABELS.items():
             self._theme.addItem(label, theme.value)
         self._theme.setCurrentIndex(self._theme.findData(self._store.theme().value))
-        theme_row = QHBoxLayout()
-        theme_row.addWidget(QLabel("配色"))
-        theme_row.addWidget(self._theme)
-        theme_row.addStretch(1)
+        self._week_start = QComboBox()
+        self._week_start.setToolTip("カレンダーとガントチャートで、週の最初に置く曜日")
+        for week_start, label in WEEK_START_LABELS.items():
+            self._week_start.addItem(label, week_start.value)
+        self._week_start.setCurrentIndex(self._week_start.findData(self._store.week_start().value))
+        row = QHBoxLayout()
+        row.addWidget(QLabel("配色"))
+        row.addWidget(self._theme)
+        row.addSpacing(16)
+        row.addWidget(QLabel("週の始まり"))
+        row.addWidget(self._week_start)
+        row.addStretch(1)
         self._theme.activated.connect(self._change_theme)
-        return theme_row
+        self._week_start.activated.connect(self._change_week_start)
+        return row
 
     def _change_theme(self) -> None:
         self._store.set_theme(Theme(self._theme.currentData()))
+
+    def _change_week_start(self) -> None:
+        self._store.set_week_start(WeekStart(self._week_start.currentData()))
 
     # --- 一覧 ---
 
