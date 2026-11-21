@@ -4,7 +4,7 @@
 
 配布物(`NekoGantcha` フォルダ)には、次の第三者ソフトウェアが含まれます。ライセンスの全文はこのフォルダにあります。
 
-| ソフトウェア | 版 | ライセンス | 全文 |
+| ソフトウェア | バージョン | ライセンス | 全文 |
 | --- | --- | --- | --- |
 | Qt | 6.12.0 | GNU LGPL v3 | `LGPL-3.0.txt`、`GPL-3.0.txt` |
 | Qt に組み込まれた第三者のコンポーネント | — | MIT、BSD、Zlib、FTL ほか | `QT_THIRD_PARTY_NOTICES.md`、`qt` フォルダ |
@@ -32,9 +32,9 @@
   - `PySide6\translations\qtbase_ja.qm`、`qt_ja.qm`
   - `shiboken6\shiboken6.abi3.dll`、`Shiboken.pyd`
 - 改変: していません。PyPI で配布されている PySide6-Essentials 6.12.0 と shiboken6 6.12.0 をそのまま使っています。
-- 差し替え: これらは別ファイルの DLL / pyd として置いてあるので、互換性のある版や、自分でビルドした版に差し替えて使えます。
+- 差し替え: これらは別ファイルの DLL / pyd として置いてあるので、互換性のあるバージョンや、自分でビルドしたものに差し替えて使えます。
 - ソースコードの入手先:
-  - Qt: <https://download.qt.io/official_releases/qt/>(過去の版は <https://download.qt.io/archive/qt/>)、<https://code.qt.io/cgit/qt/>
+  - Qt: <https://download.qt.io/official_releases/qt/>(過去のバージョンは <https://download.qt.io/archive/qt/>)、<https://code.qt.io/cgit/qt/>
   - Qt for Python: <https://download.qt.io/official_releases/QtForPython/>、<https://code.qt.io/cgit/pyside/pyside-setup.git/>
 - このアプリのソースコード: GitHub のリポジトリで MIT ライセンスで公開しています。
 - Qt の DLL に組み込まれている第三者のコンポーネント(PCRE2、HarfBuzz、FreeType、libpng、zlib、Unicode のデータなど)の著作権の表示とライセンスは、`QT_THIRD_PARTY_NOTICES.md` にまとめています。ライセンスの全文は `qt` フォルダにあります。

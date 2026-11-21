@@ -17,7 +17,7 @@ Portions of this software are copyright © 2026 The FreeType Project (https://fr
 
 ## 一覧
 
-| コンポーネント | 版 | Qt での用途 | ライセンス | 全文 |
+| コンポーネント | バージョン | Qt での用途 | ライセンス | 全文 |
 | --- | --- | --- | --- | --- |
 | tl::expected | 41d3e1f48d68 | Qt 内部で使う型(tl::expected) | CC0-1.0 | なし(パブリックドメインと同等) |
 | Unicode Character Database (UCD) | 36 | 文字と文字列の処理(QChar、QString) | Unicode-3.0 | `qt/Unicode-3.0.txt` |

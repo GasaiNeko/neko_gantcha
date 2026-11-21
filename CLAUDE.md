@@ -11,6 +11,7 @@
 ## 守ること
 
 - 返答、コメント、docstring、画面の文言は日本語で書く。識別子は英語。
+- ソフトウェアの version は「版」ではなく「バージョン」と書く(「Windows 版」のような種類の意味の「版」はそのまま)。
 - 実在のゲームの名前を、コード、テストのデータ、文書、スクリーンショットのどこにも書かない。例には「ソシャゲA」「ソシャゲB」を使う。
 - メールアドレスなどの個人情報をリポジトリに書かない。
 - コミット、マージ、タグ付け、push は、ユーザーに頼まれたときだけ行う。force push と、`main` / `develop` の履歴の書き換えはしない。
@@ -25,19 +26,19 @@ Git Flow で運用する。
 | `main` | — | — | リリースしたものだけを置く。リリースごとに `vX.Y.Z` のタグを付ける |
 | `develop` | `main` | — | 次のリリースに向けて変更をまとめる |
 | `feature/<内容>` | `develop` | `develop` | 機能の追加や修正。名前は英小文字とハイフン(例: `feature/weekly-reset`) |
-| `release/X.Y.Z` | `develop` | `main` と `develop` | リリースの準備。版の更新と、見つかった不具合の修正だけを行う |
-| `hotfix/X.Y.Z` | `main` | `main` と `develop` | リリースした版の緊急の修正 |
+| `release/X.Y.Z` | `develop` | `main` と `develop` | リリースの準備。バージョンの更新と、見つかった不具合の修正だけを行う |
+| `hotfix/X.Y.Z` | `main` | `main` と `develop` | リリースしたバージョンの緊急の修正 |
 
 - `main` と `develop` には直接コミットしない。変更を始める前に今のブランチを確かめ、`main` か `develop` にいるときは、用途に合ったブランチを作ってから作業する。ブランチを作ったら、そのことをユーザーに伝える。
 - マージは `git merge --no-ff` で行い、ブランチの流れを履歴に残す。マージが終わったブランチを消すかどうかはユーザーに確かめる。
-- 版は Semantic Versioning(`MAJOR.MINOR.PATCH`)で付ける。不具合の修正だけなら PATCH、機能の追加やマイグレーションの追加は MINOR、データの互換性がなくなる変更は MAJOR を上げる。
+- バージョンは Semantic Versioning(`MAJOR.MINOR.PATCH`)で付ける。不具合の修正だけなら PATCH、機能の追加やマイグレーションの追加は MINOR、データの互換性がなくなる変更は MAJOR を上げる。
 - コミットメッセージは日本語で書く。1行目に変更の要約を書き、必要なら1行空けて理由や詳細を書く。
 
 ### リリースの手順
 
 1. `develop` から `release/X.Y.Z` を作る。
-2. 版を `pyproject.toml` の `version` と `src/neko_gantcha/__init__.py` の `__version__` の両方で上げ、`uv lock` で `uv.lock` を更新する。
-3. 依存の版が変わっていたら、`licenses/` の一覧を直す(「依存を更新するとき」を参照)。
+2. バージョンを `pyproject.toml` の `version` と `src/neko_gantcha/__init__.py` の `__version__` の両方で上げ、`uv lock` で `uv.lock` を更新する。
+3. 依存のバージョンが変わっていたら、`licenses/` の一覧を直す(「依存を更新するとき」を参照)。
 4. チェックとテストを通し、exe をビルドして起動を確かめる。
 5. `main` へ `--no-ff` でマージし、注釈つきのタグ `vX.Y.Z` を付ける。同じものを `develop` にもマージする。
 6. 配布用の zip を作る。exe の隣の `data\`(実データ)は入れない。`dist\release` と古い zip が残っていたら、先にごみ箱へ移す。
@@ -82,15 +83,15 @@ src/neko_gantcha/
 
 ### データ
 
-- スキーマは `src/neko_gantcha/data/migrations/NNN_*.sql` を番号順に適用し、版を `PRAGMA user_version` に持つ。リリースした後のマイグレーションは書き換えず、新しい番号のファイルを足す。
+- スキーマは `src/neko_gantcha/data/migrations/NNN_*.sql` を番号順に適用し、バージョンを `PRAGMA user_version` に持つ。リリースした後のマイグレーションは書き換えず、新しい番号のファイルを足す。
 - JSON のエクスポートの形式を変えたら、`data/transfer.py` の `FORMAT_VERSION` を上げ、古い形式の読み込みを考える。
 - `app_settings`(配色などの端末ごとの設定)は JSON のエクスポートに含めない。
 - データは exe と同じフォルダの `data\` に保存し、レジストリなどには書き込まない。
 
 ### 依存を更新するとき
 
-- `licenses/THIRD_PARTY_NOTICES.md` の版を、実際に同梱するものに合わせる(PySide6 と Python の版は `tests/test_licenses.py` で確かめている)。
-- Qt の版が変わったら、`licenses/QT_THIRD_PARTY_NOTICES.md` を、新しい版の qtbase にある `qt_attribution.json` をもとに直す。バイナリの配布に全文が要るライセンスの全文だけを `licenses/qt/` に置く。
+- `licenses/THIRD_PARTY_NOTICES.md` のバージョンを、実際に同梱するものに合わせる(PySide6 と Python のバージョンは `tests/test_licenses.py` で確かめている)。
+- Qt のバージョンが変わったら、`licenses/QT_THIRD_PARTY_NOTICES.md` を、新しいバージョンの qtbase にある `qt_attribution.json` をもとに直す。バイナリの配布に全文が要るライセンスの全文だけを `licenses/qt/` に置く。
 - `licenses/` の `.txt` は原文のまま、改行を LF に保つ(`.gitattributes`)。
 
 ## 静的チェック
