@@ -38,19 +38,19 @@ _WHITE = QColor("#FFFFFF")
 _NO_CATEGORY_COLOR = "#888888"
 
 
-def weekday_color(col: int, text: QColor) -> QColor:
+def weekday_color(weekday: int, text: QColor) -> QColor:
     """曜日の見出しの色を返す。土曜は青、日曜は赤。
 
     Args:
-        col: 曜日の列(0=月曜〜6=日曜)。
+        weekday: 曜日(datetime.weekday() と同じ 0=月曜〜6=日曜)。
         text: 平日の文字の色。
 
     Returns:
         曜日の色。
     """
-    if col == SATURDAY_COL:
+    if weekday == SATURDAY_COL:
         return COLOR_SATURDAY
-    if col == SUNDAY_COL:
+    if weekday == SUNDAY_COL:
         return COLOR_SUNDAY
     return text
 

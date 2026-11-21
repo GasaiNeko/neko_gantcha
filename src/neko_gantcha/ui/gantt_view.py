@@ -121,13 +121,17 @@ class _Geometry:
         start: 時間軸の左端の日。
         days: 時間軸の日数。
         px_per_day: 1日の幅(ピクセル)。
+        first_weekday: 週の最初の曜日(0=月曜 … 6=日曜)。週スケールの区切りに使う。
     """
 
-    def __init__(self, start: date, days: int, px_per_day: float) -> None:
+    def __init__(
+        self, start: date, days: int, px_per_day: float, *, first_weekday: int = 0
+    ) -> None:
         self.start = start
         self.origin = datetime.combine(start, time.min)
         self.days = days
         self.px_per_day = px_per_day
+        self.first_weekday = first_weekday
 
     @property
     def width(self) -> float:
@@ -462,12 +466,14 @@ class TimelineState:
         categories: 分類 id → 分類。
         now: 現在の日時。
         selected_row: 選択中の行の番号。なければ -1。
+        first_weekday: 週の最初の曜日(0=月曜 … 6=日曜)。
     """
 
     scale: str
     categories: Mapping[int, Category]
     now: datetime
     selected_row: int
+    first_weekday: int = 0
 
 
 def _mode_at(x: float, rect: QRectF, modes: frozenset[DragMode], *, edge: float) -> DragMode | None:
@@ -529,7 +535,9 @@ class TimelineView(QGraphicsView):
         self._drag = None  # 作り直したら、ドラッグ中の帯はもうない
         self._drag_days = 0
         self._selected_row = state.selected_row
-        geometry = _Geometry(data.start, data.days, _PX_PER_DAY[state.scale])
+        geometry = _Geometry(
+            data.start, data.days, _PX_PER_DAY[state.scale], first_weekday=state.first_weekday
+        )
         self.geometry_ = geometry
         scene = self.scene()
         scene.clear()
@@ -748,7 +756,7 @@ class TimelineView(QGraphicsView):
             painter.drawLine(QPointF(area.left(), y), QPointF(area.right(), y))
 
     def _draw_day_lines(self, painter: QPainter, area: QRectF, geometry: _Geometry) -> None:
-        """週末の背景と縦線を描く。日スケールは毎日、週スケールは月曜ごと。月初は濃く。"""
+        """週末の背景と縦線を描く。日スケールは毎日、週スケールは週の始まりごと。月初は濃く。"""
         palette = self.palette()
         base = palette.color(QPalette.ColorRole.Base)
         text = palette.color(QPalette.ColorRole.Text)
@@ -766,7 +774,7 @@ class TimelineView(QGraphicsView):
             day = geometry.day(index)
             if day.day == 1:
                 painter.setPen(strong)
-            elif self._scale == "day" or day.weekday() == 0:
+            elif self._scale == "day" or day.weekday() == geometry.first_weekday:
                 painter.setPen(line)
             else:
                 continue
@@ -908,7 +916,7 @@ class TimelineHeader(QWidget):
             index = next_index
 
     def _draw_days(self, painter: QPainter, geometry: _Geometry, shown: tuple[int, int]) -> None:
-        """下段を描く。日スケールは毎日、週スケールは月曜の日付。"""
+        """下段を描く。日スケールは毎日、週スケールは週の始まりの日付。"""
         palette = self.palette()
         text = palette.color(QPalette.ColorRole.Text)
         line = QPen(mix_colors(palette.color(QPalette.ColorRole.Base), text, 0.18), 1)
@@ -927,7 +935,7 @@ class TimelineHeader(QWidget):
                 else:
                     painter.setPen(weekday_color(day.weekday(), text))
                 painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, str(day.day))
-            elif day.weekday() == 0:
+            elif day.weekday() == geometry.first_weekday:
                 painter.setPen(line)
                 painter.drawLine(x, half, x, HEADER_H)
                 painter.setPen(text)
@@ -1124,6 +1132,7 @@ class GanttView(QWidget):
             store.filter_changed,
             store.periods_changed,
             store.minute_ticked,
+            store.week_start_changed,
         ):
             signal.connect(self._schedule_refresh)
         store.selection_changed.connect(self._on_selection_changed)
@@ -1239,7 +1248,10 @@ class GanttView(QWidget):
         categories = {c.saved_id: c for c in store.categories(include_archived=True)}
         selected_row = self._row_of(store.selected)
         now = store.now()
-        self.timeline.set_data(data, TimelineState(self._scale, categories, now, selected_row))
+        state = TimelineState(
+            self._scale, categories, now, selected_row, store.week_start().weekday
+        )
+        self.timeline.set_data(data, state)
         geometry = self.timeline.geometry_
         if geometry is not None:
             self.header.set_data(geometry, self._scale, now.date())

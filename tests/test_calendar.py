@@ -75,6 +75,15 @@ def test_month_weeks_start_on_monday_and_have_six_weeks() -> None:
     assert all(week[0].weekday() == 0 for week in weeks)
 
 
+def test_month_weeks_can_start_on_sunday() -> None:
+    weeks = month_weeks(2026, 11, first_weekday=6)
+    assert len(weeks) == 6
+    assert weeks[0][0] == date(2026, 11, 1)  # 11/1 は日曜なので、その日から
+    assert weeks[0][6] == date(2026, 11, 7)
+    assert weeks[5][6] == date(2026, 12, 12)
+    assert all(week[0].weekday() == 6 for week in weeks)
+
+
 def test_month_weeks_pads_short_months_to_six_weeks() -> None:
     # 2027年2月は月曜始まりの28日で、ちょうど4週に収まる
     weeks = month_weeks(2027, 2)

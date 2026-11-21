@@ -62,6 +62,13 @@ def test_week_start_is_monday_across_month_and_year() -> None:
     assert week_start(date(2027, 1, 1)) == date(2026, 12, 28)  # 年またぎ
 
 
+def test_week_start_can_be_sunday() -> None:
+    assert week_start(date(2026, 11, 18), first_weekday=6) == date(2026, 11, 15)
+    assert week_start(date(2026, 11, 15), first_weekday=6) == date(2026, 11, 15)  # 日曜はその日から
+    assert week_start(date(2026, 11, 21), first_weekday=6) == date(2026, 11, 15)  # 土曜は週の最後
+    assert week_start(date(2027, 1, 1), first_weekday=6) == date(2026, 12, 27)  # 年またぎ
+
+
 # --- 時間軸に置くか ---
 
 

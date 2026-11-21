@@ -1,6 +1,6 @@
 """カレンダー(月表示・週表示)に載せる内容の計算。Qt には依存しない。
 
-週は月曜始まり。月表示は常に6週ぶん(42日)を返す。
+週の始まりは月曜か日曜(first_weekday で指定し、既定は月曜)。月表示は常に6週ぶん(42日)を返す。
 週表示は1週間ぶんを、終日欄(帯と期限ラベル)と時間軸(時刻つきの項目)に分けて返す。
 """
 
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 
 WEEKS_IN_MONTH_VIEW = 6
-LAST_COL = 6  # 日曜の列
+LAST_COL = 6  # 週の最後の列
 
 
 @dataclass(frozen=True, slots=True)
@@ -49,7 +49,7 @@ class BandSegment:
     """イベントの帯のうち、1週間に収まる部分。"""
 
     event: Event
-    first_col: int  # 0=月曜 … 6=日曜
+    first_col: int  # 週の中の列(0=週の最初の日 … 6=最後の日)
     last_col: int
     lane: int  # 同じ週の中での段(0 が最上段)
     starts_here: bool  # この週の中でイベントが始まる
@@ -115,7 +115,7 @@ class MonthView:
         """表示の最初の日。
 
         Returns:
-            最初の週の月曜日。
+            最初の週の最初の日。
         """
         return self.weeks[0][0].day
 
@@ -124,7 +124,7 @@ class MonthView:
         """表示の最後の日。
 
         Returns:
-            最後の週の日曜日。
+            最後の週の最後の日。
         """
         return self.weeks[-1][-1].day
 
@@ -146,17 +146,18 @@ class DayDetail:
     dailies: list[DailyEntry]
 
 
-def month_weeks(year: int, month: int) -> list[list[date]]:
-    """月曜始まりで、その月を含む6週ぶんの日付を返す。
+def month_weeks(year: int, month: int, *, first_weekday: int = 0) -> list[list[date]]:
+    """その月を含む6週ぶんの日付を返す。
 
     Args:
         year: 年。
         month: 月。
+        first_weekday: 週の最初の曜日(0=月曜 … 6=日曜)。
 
     Returns:
         週ごとの日付(1週は7日)。
     """
-    weeks = calendar.Calendar(firstweekday=0).monthdatescalendar(year, month)
+    weeks = calendar.Calendar(firstweekday=first_weekday).monthdatescalendar(year, month)
     while len(weeks) < WEEKS_IN_MONTH_VIEW:
         last = weeks[-1][-1]
         weeks.append([last + timedelta(days=offset) for offset in range(1, 8)])
@@ -214,7 +215,7 @@ def layout_week(events: Iterable[Event], week: list[date]) -> list[BandSegment]:
 
     Args:
         events: 帯にするイベント。
-        week: 週の日付(月曜〜日曜)。
+        week: 週の日付(7日)。
 
     Returns:
         その週にかかる帯。
@@ -323,13 +324,16 @@ def _due_by_day(rows: Iterable[TodoRow]) -> dict[date, list[TodoRow]]:
     return result
 
 
-def build_month(year: int, month: int, inputs: CalendarInputs) -> MonthView:
+def build_month(
+    year: int, month: int, inputs: CalendarInputs, *, first_weekday: int = 0
+) -> MonthView:
     """月表示の内容を組み立てる。
 
     Args:
         year: 年。
         month: 月。
         inputs: カレンダーの組み立てに使う情報。
+        first_weekday: 週の最初の曜日(0=月曜 … 6=日曜)。
 
     Returns:
         月表示の内容。
@@ -337,7 +341,7 @@ def build_month(year: int, month: int, inputs: CalendarInputs) -> MonthView:
     due = _due_by_day(inputs.rows)
     weeks: list[list[DayCell]] = []
     bands: list[list[BandSegment]] = []
-    for week in month_weeks(year, month):
+    for week in month_weeks(year, month, first_weekday=first_weekday):
         cells: list[DayCell] = []
         for day in week:
             dailies = daily_entries(day, inputs)
@@ -366,7 +370,7 @@ _DAY = timedelta(days=1)
 class TimedBlock:
     """週表示の時間軸に置く項目1件(1日の中に収まる)。"""
 
-    col: int  # 0=月曜 … 6=日曜
+    col: int  # 週の中の列(0=週の最初の日 … 6=最後の日)
     start: datetime  # 表示上の開始
     end: datetime  # 表示上の終了(MIN_BLOCK 以上の長さにしてある)
     event: Event | None = None
@@ -389,13 +393,13 @@ class WeekView:
     """週表示の内容。
 
     Attributes:
-        days: 月曜〜日曜のマス。
+        days: 週の7日ぶんのマス。
         bands: 終日欄のイベントの帯。
         all_day: 曜日ごとの、終日欄に出す期限つきタスク。
         blocks: 時間軸に置く項目。
     """
 
-    days: list[DayCell]  # 月曜〜日曜
+    days: list[DayCell]  # 週の7日ぶん
     bands: list[BandSegment]  # 終日欄のイベントの帯
     all_day: list[list[TodoRow]]  # 曜日ごとの、終日欄に出す期限つきタスク
     blocks: list[TimedBlock]  # 時間軸に置く項目
@@ -405,7 +409,7 @@ class WeekView:
         """週の最初の日。
 
         Returns:
-            月曜日。
+            週の最初の日。
         """
         return self.days[0].day
 
@@ -414,21 +418,22 @@ class WeekView:
         """週の最後の日。
 
         Returns:
-            日曜日。
+            週の最後の日。
         """
         return self.days[-1].day
 
 
-def week_start(day: date) -> date:
-    """その日を含む週の月曜日を返す。
+def week_start(day: date, *, first_weekday: int = 0) -> date:
+    """その日を含む週の最初の日を返す。
 
     Args:
         day: 日付。
+        first_weekday: 週の最初の曜日(0=月曜 … 6=日曜)。
 
     Returns:
-        月曜日の日付。
+        週の最初の日。
     """
-    return day - timedelta(days=day.weekday())
+    return day - timedelta(days=(day.weekday() - first_weekday) % 7)
 
 
 def is_timed_event(event: Event) -> bool:
@@ -531,7 +536,7 @@ def build_week(first: date, inputs: CalendarInputs) -> WeekView:
     期限つきタスクは期限の時刻に置き、期限が 23:59 のものは終日欄に出す。
 
     Args:
-        first: その週の月曜日。
+        first: その週の最初の日。
         inputs: カレンダーの組み立てに使う情報。
 
     Returns:
