@@ -40,12 +40,16 @@ Git Flow で運用する。
 3. 依存の版が変わっていたら、`licenses/` の一覧を直す(「依存を更新するとき」を参照)。
 4. チェックとテストを通し、exe をビルドして起動を確かめる。
 5. `main` へ `--no-ff` でマージし、注釈つきのタグ `vX.Y.Z` を付ける。同じものを `develop` にもマージする。
-6. 配布用の zip を作る。`data\` は入れない。
+6. 配布用の zip を作る。exe の隣の `data\`(実データ)は入れない。`dist\release` と古い zip が残っていたら、先にごみ箱へ移す。
 
    ```powershell
-   robocopy dist\NekoGantcha dist\release\NekoGantcha /E /XD data
+   robocopy dist\NekoGantcha dist\release\NekoGantcha /E /XD "$PWD\dist\NekoGantcha\data"
    Compress-Archive -Path dist\release\NekoGantcha -DestinationPath dist\NekoGantcha-X.Y.Z-win64.zip
    ```
+
+   - robocopy の `/XD` には、外すフォルダをフルパスで書く。`/XD data` のように名前だけを書くと、同じ名前のフォルダがすべて外れ、`_internal\neko_gantcha\data\migrations` もなくなって起動できなくなる。
+   - robocopy は成功したときも終了コードが 1 になる(8 以上が失敗)。
+7. zip を空のフォルダに展開し、その `NekoGantcha.exe` が起動して `data\` を作れることを確かめてから、Release に添付する。
 
 hotfix も同じ流れで、作る元が `main` になる。
 
