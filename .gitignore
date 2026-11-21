@@ -1,0 +1,20 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Tools
+.pytest_cache/
+.ruff_cache/
+
+# アプリのデータ(開発実行時)
+/data/
+
+# Claude Code の個人設定
+.claude/settings.local.json

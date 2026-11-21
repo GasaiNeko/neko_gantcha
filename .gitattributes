@@ -1,0 +1,5 @@
+# ライセンスの全文は原文どおりに保つ(改行は LF)。core.autocrlf で CRLF に変わると、
+# gnu.org の原文と一致しなくなる(tests/test_licenses.py で確かめている)
+LICENSE text eol=lf
+licenses/*.txt text eol=lf
+licenses/qt/*.txt text eol=lf

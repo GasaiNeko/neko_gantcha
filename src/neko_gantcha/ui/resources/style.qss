@@ -1,0 +1,55 @@
+/* ねこがんちゃの共通スタイル。色は palette() を使い、Windows のライト・ダーク設定に追従させる。 */
+QLabel#paneTitle {
+    font-weight: bold;
+    padding: 2px 0;
+}
+
+QLabel#itemTitle {
+    font-size: 12pt;
+    font-weight: bold;
+}
+
+QLabel#placeholder,
+QLabel#info {
+    color: #9E9E9E;
+}
+
+QListWidget#filterList,
+QListWidget#dayList,
+QListWidget#subtaskList,
+QListWidget#templateList,
+QListWidget#templateTasks,
+QTreeWidget#todoTree {
+    border: 1px solid palette(mid);
+}
+
+QSplitter#ganttSplitter {
+    border: 1px solid palette(mid);
+}
+
+QLabel#ganttCorner {
+    font-weight: bold;
+    background: palette(alternate-base);
+    border-bottom: 1px solid palette(mid);
+}
+
+QListWidget#filterList::item,
+QListWidget#templateList::item {
+    padding: 5px 4px;
+}
+
+QTreeWidget#todoTree::item {
+    padding: 4px 2px;
+}
+
+QProgressBar {
+    border: 1px solid palette(mid);
+    border-radius: 3px;
+    background: palette(base);
+    color: palette(text);
+    text-align: center;
+}
+
+QProgressBar::chunk {
+    background: rgba(59, 130, 246, 0.55);
+}

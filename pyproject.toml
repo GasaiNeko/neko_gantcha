@@ -1,0 +1,110 @@
+[project]
+    name = "neko_gantcha"
+    version = "1.0.0"
+    description = "ソシャゲのイベントとタスクを ToDo・カレンダー・ガントで管理する Windows デスクトップアプリ"
+    readme = "README.md"
+    license = "MIT"
+    license-files = ["LICENSE"]
+    authors = [{ name = "GasaiNeko" }]
+    requires-python = ">=3.14"
+    # アプリが使う Qt は QtCore / QtGui / QtWidgets だけなので、Essentials だけに依存する。
+    # Addons(GPL でしか使えないモジュールを含む)は入れない
+    dependencies = ["PySide6-Essentials>=6.11"]
+
+[project.gui-scripts]
+    neko_gantcha = "neko_gantcha.__main__:main"
+
+[dependency-groups]
+    dev = [
+        "pyinstaller>=6.15",
+        "pytest>=8",
+        "ruff>=0.17",
+        "ty>=0.0.107",
+    ]
+
+[build-system]
+    requires = ["uv_build>=0.13.8,<0.14.0"]
+    build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+    testpaths = ["tests"]
+
+[tool.ruff]
+    line-length = 100
+    indent-width = 4
+    target-version = "py314"
+    extend-include = ["*.spec"]
+
+[tool.ruff.format]
+    docstring-code-format = true
+
+[tool.ruff.lint]
+    preview = true
+    select = ["ALL"]
+    ignore = [
+        "COM812", # ruff format と競合する
+        "CPY001", # ファイルごとの著作権表記は書かない(LICENSE にまとめている)
+        "D107",   # __init__ には docstring を書かず、引数はクラスの docstring に書く
+        "D415",   # 日本語の docstring は「。」で終わるが、D415 は「。」を句点と認めない
+        "DTZ",    # 日時は JST のタイムゾーンなしで扱う設計(ISO 8601 の文字列で保存する)
+        "RUF105", # 抑制は `# noqa: <コード>` で書く決まりにしている
+        "RUF201", # 設定ではルールを名前でなくコードで書く
+    ]
+    allowed-confusables = [
+        "（",
+        "）",
+        "：",
+        "；",
+        "！",
+        "？",
+        "，",
+        "．",
+        "～",
+    ]
+
+[tool.ruff.lint.per-file-ignores]
+    "tests/**/*.py" = [
+        "S101",
+        "PLR2004",
+        "SLF001",
+        "PLC2701",
+        "INP001",
+        "D",
+        "DOC",
+    ]
+    # Qt の setEnabled(False) や setVisible(True) などは、bool を位置引数でしか渡せない
+    "src/neko_gantcha/ui/**/*.py" = ["FBT003"]
+    # tools/ は単体で実行するスクリプトで、パッケージではない(INP001)
+    "tools/*.py" = ["FBT003", "INP001"]
+
+[tool.ruff.lint.pydocstyle]
+    convention = "google"
+
+[tool.ruff.lint.flake8-tidy-imports]
+    ban-relative-imports = "all"
+
+[tool.ruff.lint.flake8-type-checking]
+    strict = true
+
+[tool.ruff.lint.mccabe]
+    max-complexity = 10
+
+[tool.ruff.lint.pylint]
+    max-args = 5
+    max-positional-args = 3
+    max-branches = 10
+    max-returns = 4
+    max-statements = 40
+    max-locals = 12
+    max-nested-blocks = 3
+    max-bool-expr = 4
+    max-public-methods = 15
+
+[tool.ty.rules]
+    all = "error"
+
+[tool.ty.analysis]
+    respect-type-ignore-comments = false
+
+[tool.ty.terminal]
+    error-on-warning = true
